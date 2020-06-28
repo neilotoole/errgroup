@@ -14,7 +14,6 @@ package errgroupn
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"sync"
 
@@ -26,8 +25,8 @@ import (
 //
 // A zero Group is valid and does not cancel on error. FIXME: errgroupg should emulate this behavior.
 type Group struct {
-	cancel    func()
-	ctxDoneCh <-chan struct{}
+	cancel func()
+	// ctxDoneCh <-chan struct{}
 
 	wg sync.WaitGroup
 
@@ -35,7 +34,7 @@ type Group struct {
 	err     error
 
 	// initOnce is invoked by method Go to initialize the group.
-	initOnce sync.Once
+	// initOnce sync.Once
 
 	// numG is the maximum number of goroutines that can be started.
 	numG int
@@ -52,16 +51,16 @@ type Group struct {
 	qMu sync.Mutex
 
 	// qClosed is true if qCh has been closed.
-	qClosed  bool
-	qStopped bool
+	qClosed bool
+	// qStopped bool
 
-	stopCh chan struct{}
+	// stopCh chan struct{}
 
 	gCount atomic.Int64
 
-	gIdCount    atomic.Int64 // FIXME: delete
-	fCount      atomic.Int64 // FIXME: delete
-	workedCount atomic.Int64 // FIXME: delete
+	// gIdCount    atomic.Int64 // FIXME: delete
+	// fCount      atomic.Int64 // FIXME: delete
+	// workedCount atomic.Int64 // FIXME: delete
 }
 
 // WithContext returns a new Group and an associated Context derived from ctx.
@@ -83,16 +82,16 @@ func WithContext(ctx context.Context) (*Group, context.Context) {
 // also <= 0, a qSize of runtime.NumCPU*2 is used).
 func WithContextN(ctx context.Context, numG, qSize int) (*Group, context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
-	return &Group{ctxDoneCh: ctx.Done(), cancel: cancel, numG: numG, qSize: qSize}, ctx
+	return &Group{ /*ctxDoneCh: ctx.Done(),*/ cancel: cancel, numG: numG, qSize: qSize}, ctx
 }
 
 // Wait blocks until all function calls from the Go method have returned, then
 // returns the first non-nil error (if any) from them.
 func (g *Group) Wait() error {
-	printlnf("\ng.Wait...\n")
+	// printlnf("\ng.Wait...\n")
 	g.qMu.Lock()
 
-	started := g.gCount.Load()
+	// started := g.gCount.Load()
 
 	// if g.qClosed {
 	// 	// qCh is closed already, which means this is a dodgy
@@ -112,11 +111,11 @@ func (g *Group) Wait() error {
 		// g.gCount.Store(0) // Reset the counter
 	}
 
-	if g.stopCh != nil && !g.qStopped {
-		close(g.stopCh)
-		g.qStopped = true
-		// g.stopCh = nil
-	}
+	// if g.stopCh != nil && !g.qStopped {
+	// 	close(g.stopCh)
+	// 	g.qStopped = true
+	// 	// g.stopCh = nil
+	// }
 
 	g.wg.Wait()
 	g.qCh = nil
@@ -126,7 +125,7 @@ func (g *Group) Wait() error {
 		g.cancel()
 	}
 
-	printlnf("\ng.Wait: exiting (started=%d; err=%v)\n", started, g.err)
+	// printlnf("\ng.Wait: exiting (started=%d; err=%v)\n", started, g.err)
 	return g.err
 }
 
@@ -140,9 +139,10 @@ func (g *Group) Wait() error {
 func (g *Group) Go(f func() error) {
 	g.qMu.Lock()
 	if g.qCh == nil {
-		printlnf("g.Go: initing...")
+		// printlnf("g.Go: initing...")
 
-		g.qClosed, g.qStopped = false, false
+		g.qClosed = false
+		// g.qClosed, g.qStopped = false, false
 
 		// The zero value of numG would mean no worker G created.
 		// We want the "effective" zero value to be runtime.NumCPU.
@@ -155,13 +155,13 @@ func (g *Group) Go(f func() error) {
 		}
 
 		g.qCh = make(chan func() error, g.qSize)
-		g.stopCh = make(chan struct{})
+		// g.stopCh = make(chan struct{})
 		// Being that g.Go has been invoked, we'll need at
 		// least one goroutine.
 
-		printlnf("G.Go.init: add #%d", g.fCount.Inc())
+		// printlnf("G.Go.init: add #%d", g.fCount.Inc())
 
-		g.gIdCount.Store(0)
+		// g.gIdCount.Store(0)
 		g.gCount.Store(1)
 		g.startG()
 		g.qCh <- f
@@ -169,13 +169,13 @@ func (g *Group) Go(f func() error) {
 		return
 	}
 
-	printlnf("add #%d", g.fCount.Inc())
+	// printlnf("add #%d", g.fCount.Inc())
 	g.qCh <- f
 
 	// Yield so that already-running goroutines have a chance to
 	// pick up the new f from qCh before we check if we should
 	// start a new goroutine.
-	runtime.Gosched()
+	// runtime.Gosched()
 
 	// Check if we can or should start a new goroutine.
 	g.maybeStartG()
@@ -195,8 +195,7 @@ func (g *Group) maybeStartG() {
 	// We have at least one item in qCh. Maybe it's time to start
 	// a new goroutine?
 
-	wouldBeCount := g.gCount.Inc()
-	if wouldBeCount > int64(g.numG) {
+	if g.gCount.Inc() > int64(g.numG) {
 		// Starting a new goroutine would put us over the numG limit,
 		// so we back out.
 		g.gCount.Dec()
@@ -208,19 +207,19 @@ func (g *Group) maybeStartG() {
 }
 
 func (g *Group) startG() {
-	gCount := g.gCount.Load() // FIXME: delete
-	if gCount > int64(g.numG) {
-		panic(fmt.Sprintf("tried to start g when gCount is %d", gCount))
-	}
+	// gCount := g.gCount.Load() // FIXME: delete
+	// if gCount > int64(g.numG) {
+	// 	panic(fmt.Sprintf("tried to start g when gCount is %d", gCount))
+	// }
 
 	g.wg.Add(1)
 	go func() {
-		id := g.gIdCount.Inc()
+		// id := g.gIdCount.Inc()
 
-		defer printlnf("exit g%d", id)
+		// defer printlnf("exit g%d", id)
 		defer g.wg.Done()
 
-		printlnf("start g%d", id)
+		// printlnf("start g%d", id)
 
 		var f func() error
 
@@ -235,14 +234,14 @@ func (g *Group) startG() {
 			case f = <-g.qCh:
 				if f == nil {
 					// qCh was closed, time to exit
-					printlnf("g%d: exiting due to <--q.qCh received nil", id)
+					// printlnf("g%d: exiting due to <--q.qCh received nil", id)
 
 					return
 				}
 			}
 
-			workedCount := g.workedCount.Inc()
-			printlnf("g%d: handling #%d", id, workedCount)
+			// workedCount := g.workedCount.Inc()
+			// printlnf("g%d: handling #%d", id, workedCount)
 
 			if err := f(); err != nil {
 				g.errOnce.Do(func() {
@@ -251,7 +250,7 @@ func (g *Group) startG() {
 						g.cancel()
 					}
 				})
-				printlnf("g%d: exiting due to error from func", id)
+				// printlnf("g%d: exiting due to error from func", id)
 
 				return
 			}
@@ -259,9 +258,9 @@ func (g *Group) startG() {
 	}()
 }
 
-func printlnf(format string, a ...interface{}) {
-	// println(fmt.Sprintf(format, a...))
-}
+// func printlnf(format string, a ...interface{}) {
+// 	// println(fmt.Sprintf(format, a...))
+// }
 
 //
 // // Go adds the given function to a queue of functions that are called

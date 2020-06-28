@@ -31,26 +31,23 @@ var (
 	_ grouper = &errgroupn.Group{}
 )
 
-func newErrgroupZero() grouper {
-	return &errgroup.Group{}
+func newErrgroupZero() (grouper, context.Context) {
+	return &errgroup.Group{}, context.Background()
 }
 
-func newErrgroupnZero() grouper {
-	return &errgroupn.Group{}
+func newErrgroupnZero() (grouper, context.Context) {
+	return &errgroupn.Group{}, context.Background()
 }
 
-func newErrgroupWithContext() grouper {
-	g, _ := errgroup.WithContext(context.Background())
-	return g
+func newErrgroupWithContext() (grouper, context.Context) {
+	return errgroup.WithContext(context.Background())
 }
-func newErrgroupnWithContext() grouper {
-	g, _ := errgroupn.WithContext(context.Background())
-	return g
+func newErrgroupnWithContext() (grouper, context.Context) {
+	return errgroupn.WithContext(context.Background())
 }
 
-func newErrgroupnWithContextN(numG, qSize int) grouper {
-	g, _ := errgroupn.WithContextN(context.Background(), numG, qSize)
-	return g
+func newErrgroupnWithContextN(numG, qSize int) (grouper, context.Context) {
+	return errgroupn.WithContextN(context.Background(), numG, qSize)
 }
 
 func TestSmoke(t *testing.T) {
@@ -62,17 +59,17 @@ func TestSmoke(t *testing.T) {
 
 	testCases := []struct {
 		name string
-		g    grouper
+		g    func() (grouper, context.Context)
 	}{
-		{name: "errgroup_zero", g: newErrgroupZero()},
-		{name: "errgroup_wctx", g: newErrgroupWithContext()},
-		{name: "errgroupn_zero", g: newErrgroupnZero()},
+		{name: "errgroup_zero", g: newErrgroupZero},
+		{name: "errgroup_wctx", g: newErrgroupWithContext},
+		{name: "errgroupn_zero", g: newErrgroupnZero},
 	}
 
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			g := tc.g
+			g, _ := tc.g()
 
 			vals := make([]int, loopN)
 			for i := 0; i < loopN; i++ {
@@ -118,7 +115,7 @@ func TestSmoke(t *testing.T) {
 func TestEquivalence_ZeroGroup_GoWaitThenGoAgain(t *testing.T) {
 	testCases := []struct {
 		name string
-		newG func() grouper
+		newG func() (grouper, context.Context)
 	}{
 		{name: "errgroup", newG: newErrgroupZero},
 		{name: "errgroupn", newG: newErrgroupnZero},
@@ -128,19 +125,20 @@ func TestEquivalence_ZeroGroup_GoWaitThenGoAgain(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.name, func(t *testing.T) {
+			g, gctx := tc.newG()
+
 			actionCh := make(chan struct{}, 1)
 			actionMu := &sync.Mutex{}
 			actionFn := func() error {
 				actionMu.Lock()
 				defer actionMu.Unlock()
 
-				doSomething()
+				doWork(gctx, 10)
 
 				actionCh <- struct{}{}
 				return nil
 			}
 
-			g := tc.newG()
 			g.Go(actionFn)
 
 			err := g.Wait()
@@ -170,7 +168,7 @@ func TestEquivalence_ZeroGroup_GoWaitThenGoAgain(t *testing.T) {
 func TestEquivalence_ZeroGroup_WaitThenGo(t *testing.T) {
 	testCases := []struct {
 		name string
-		newG func() grouper
+		newG func() (grouper, context.Context)
 	}{
 		{name: "errgroup", newG: newErrgroupZero},
 		{name: "errgroupn", newG: newErrgroupnZero},
@@ -180,19 +178,19 @@ func TestEquivalence_ZeroGroup_WaitThenGo(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.name, func(t *testing.T) {
+			g, gctx := tc.newG()
+
 			actionCh := make(chan struct{}, 1)
 			actionMu := &sync.Mutex{}
 			actionFn := func() error {
 				actionMu.Lock()
 				defer actionMu.Unlock()
 
-				doSomething()
+				doWork(gctx, 10)
 
 				actionCh <- struct{}{}
 				return nil
 			}
-
-			g := tc.newG()
 
 			time.Sleep(time.Second)
 			err := g.Wait()
@@ -217,161 +215,6 @@ func TestEquivalence_ZeroGroup_WaitThenGo(t *testing.T) {
 	}
 }
 
-//
-// func TestGoAfterWaitEquivalence_0GoThenWait(t *testing.T) {
-// 	testCases := []struct {
-// 		name string
-// 		newG func() grouper
-// 	}{
-// 		{name: "errgroup", newG: errgroupZero},
-// 		{name: "errgroupn", newG: errgroupnZero},
-// 	}
-//
-// 	for _, tc := range testCases {
-// 		tc := tc
-//
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			actionCh := make(chan struct{}, 1)
-// 			actionMu := &sync.Mutex{}
-// 			actionFn := func() error {
-// 				actionMu.Lock()
-// 				defer actionMu.Unlock()
-//
-// 				doSomething()
-//
-// 				actionCh <- struct{}{}
-// 				return nil
-// 			}
-//
-// 			g := tc.newG()
-// 			g.Go(actionFn)
-//
-// 			time.Sleep(time.Second)
-// 			g.Wait()
-// 			if len(actionCh) != 1 {
-// 				t.Errorf("actionCh should have one item")
-// 			}
-// 		})
-// 	}
-// }
-//
-// func TestGoAfterWaitEquivalence(t *testing.T) {
-// 	actionCh := make(chan struct{}, 1)
-// 	actionMu := &sync.Mutex{}
-// 	actionFn := func() error {
-// 		actionMu.Lock()
-// 		defer actionMu.Unlock()
-// 		actionCh <- struct{}{}
-// 		return nil
-// 	}
-//
-// 	// Test 1: errgroup sanity test
-// 	eg := errgroup.Group{}
-// 	eg.Go(actionFn)
-// 	eg.Wait()
-// 	if len(actionCh) != 1 {
-// 		t.Errorf("actionCh should have one item")
-// 	}
-//
-// 	<-actionCh // clear actionCh
-// 	if len(actionCh) != 0 {
-// 		panic("actionCh should be empty")
-// 	}
-//
-// 	// Test 2: eg.Go after eg.Wait
-// 	eg = errgroup.Group{}
-// 	actionMu.Lock()
-// 	eg.Wait()
-// 	eg.Go(actionFn)
-// 	time.Sleep(time.Second)
-// 	actionMu.Unlock()
-// 	if len(actionCh) != 0 {
-// 		t.Errorf("actionFn should not have been executed according to our understanding")
-// 	}
-// 	println(len(actionCh))
-//
-// }
-
-func BenchmarkFibs(b *testing.B) {
-	testCases := []struct {
-		name string
-		fn   func() error
-	}{
-		{name: "fibsSequential", fn: fibsSequential},
-		{name: "fibsErrgroup", fn: fibsErrgroup},
-		{name: "fibsErrgroupn_0_0", fn: fibsErrgroupnFunc(0, 0)},
-		{name: "fibsErrgroupn_1_1", fn: fibsErrgroupnFunc(1, 1)},
-		{name: "fibsErrgroupn_2_2", fn: fibsErrgroupnFunc(2, 2)},
-		{name: "fibsErrgroupn_4_16", fn: fibsErrgroupnFunc(4, 16)},
-		{name: "fibsErrgroupn_16_4", fn: fibsErrgroupnFunc(16, 4)},
-		{name: "fibsErrgroupn_16_16", fn: fibsErrgroupnFunc(16, 4)},
-		{name: "fibsErrgroupn_16_32", fn: fibsErrgroupnFunc(16, 32)},
-		{name: "fibsErrgroupn_50_100", fn: fibsErrgroupnFunc(50, 100)},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		b.Run(tc.name, func(b *testing.B) {
-			b.ReportAllocs()
-
-			for i := 0; i < b.N; i++ {
-				err := tc.fn()
-				if err != nil {
-					b.Error(err)
-				}
-			}
-		})
-	}
-}
-
-// doSomething spend some time doing something that the compiler
-// won't zap away.
-func doSomething() error {
-	time.Sleep(time.Millisecond)
-	return doFib(fibMax)
-}
-
-const fibMax = 45
-
-func fibsSequential() error {
-	time.Sleep(time.Millisecond)
-
-	for i := 0; i <= fibMax; i++ {
-		doFib(i)
-	}
-	return nil
-}
-
-func fibsErrgroup() error {
-	g, _ := errgroup.WithContext(context.Background())
-	for i := 0; i <= fibMax; i++ {
-		i := i
-		g.Go(func() error {
-			time.Sleep(time.Millisecond)
-
-			doFib(i)
-			return nil
-		})
-	}
-
-	return g.Wait()
-}
-
-func fibsErrgroupnFunc(numG, qSize int) func() error {
-	return func() error {
-		g, _ := errgroupn.WithContextN(context.Background(), numG, qSize)
-		for i := 0; i <= fibMax; i++ {
-			i := i
-			g.Go(func() error {
-				time.Sleep(time.Millisecond)
-				return doFib(i)
-			})
-		}
-
-		return g.Wait()
-	}
-}
-
 // fibVals holds computed values of the fibonacci sequence.
 // Each row holds the fib sequence for that row's index. That is,
 // the first few rows look like:
@@ -382,6 +225,8 @@ func fibsErrgroupnFunc(numG, qSize int) func() error {
 //   [0 1 1 2]
 //   [0 1 1 2 3]
 var fibVals [][]int
+
+const fibMax = 50
 
 func init() {
 	fibVals = make([][]int, fibMax)

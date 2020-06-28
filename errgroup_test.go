@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	errgroup "github.com/neilotoole/errgroupn"
-	// "golang.org/x/sync/errgroup"
 )
 
 var (
@@ -107,16 +106,16 @@ func ExampleGroup_parallel() {
 
 func TestZeroGroup(t *testing.T) {
 	err1 := errors.New("errgroup_test: 1")
-	// err2 := errors.New("errgroup_test: 2")
+	err2 := errors.New("errgroup_test: 2")
 
 	cases := []struct {
 		errs []error
 	}{
-		// {errs: []error{}},
-		// {errs: []error{nil}},
+		{errs: []error{}},
+		{errs: []error{nil}},
 		{errs: []error{err1}},
-		// {errs: []error{err1, nil}},
-		// {errs: []error{err1, nil, err2}},
+		{errs: []error{err1, nil}},
+		{errs: []error{err1, nil, err2}},
 	}
 
 	for _, tc := range cases {
@@ -131,9 +130,7 @@ func TestZeroGroup(t *testing.T) {
 				firstErr = err
 			}
 
-			gErr := g.Wait()
-			// if gErr := g.Wait(); gErr != firstErr {
-			if gErr != firstErr {
+			if gErr := g.Wait(); gErr != firstErr {
 				t.Errorf("after %T.Go(func() error { return err }) for err in %v\n"+
 					"g.Wait() = %v; want %v",
 					g, tc.errs[:i+1], err, firstErr)
