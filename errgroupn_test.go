@@ -1,16 +1,7 @@
-// Package errgroupn is an extension of the sync.errgroup
-// concept, and the code herein is directly descended from
-// that sync.errgroup code which has this header comment:
-//
-// Copyright 2016 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package errgroupn_test
 
 import (
 	"context"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -46,33 +37,35 @@ func newErrgroupnWithContext() (grouper, context.Context) {
 	return errgroupn.WithContext(context.Background())
 }
 
-func newErrgroupnWithContextN(numG, qSize int) (grouper, context.Context) {
-	return errgroupn.WithContextN(context.Background(), numG, qSize)
+func newErrgroupnWithContextN(numG, qSize int) func() (grouper, context.Context) {
+	return func() (grouper, context.Context) {
+		return errgroupn.WithContextN(context.Background(), numG, qSize)
+	}
 }
 
-func TestSmoke(t *testing.T) {
-	const (
-		loopN = 5
-		numG  = 2
-		qSize = 2
-	)
-
+func TestGroup(t *testing.T) {
 	testCases := []struct {
 		name string
-		g    func() (grouper, context.Context)
+		newG func() (grouper, context.Context)
 	}{
-		{name: "errgroup_zero", g: newErrgroupZero},
-		{name: "errgroup_wctx", g: newErrgroupWithContext},
-		{name: "errgroupn_zero", g: newErrgroupnZero},
+		{name: "errgroup_zero", newG: newErrgroupZero},
+		{name: "errgroup_wctx", newG: newErrgroupWithContext},
+		{name: "errgroupn_zero", newG: newErrgroupnZero},
+		{name: "errgroupn_wctx", newG: newErrgroupnWithContext},
+		{name: "errgroupn_wctx_0_0", newG: newErrgroupnWithContextN(0, 0)},
+		{name: "errgroupn_wctx_1_0", newG: newErrgroupnWithContextN(1, 0)},
+		{name: "errgroupn_wctx_1_1", newG: newErrgroupnWithContextN(1, 1)},
+		{name: "errgroupn_wctx_4_16", newG: newErrgroupnWithContextN(4, 16)},
+		{name: "errgroupn_wctx_16_4", newG: newErrgroupnWithContextN(16, 4)},
 	}
 
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			g, _ := tc.g()
+			g, _ := tc.newG()
 
-			vals := make([]int, loopN)
-			for i := 0; i < loopN; i++ {
+			vals := make([]int, fibMax)
+			for i := 0; i < fibMax; i++ {
 				i := i
 				g.Go(func() error {
 					vals[i] = fib(i)
@@ -84,14 +77,14 @@ func TestSmoke(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !equalInts(vals, fibVals[loopN-1]) {
-				t.Errorf("vals (%d) incorrect: %v  |  %v", loopN, vals, fibVals[loopN])
+			if !equalInts(vals, fibVals[fibMax-1]) {
+				t.Errorf("vals (%d) incorrect: %v  |  %v", fibMax, vals, fibVals[fibMax])
 			}
 
-			println("\n\n\n **** doing it again ****\n\n\n")
-
-			vals = make([]int, loopN)
-			for i := 0; i < loopN; i++ {
+			// Let's do this a second time to verify that g.Go continues
+			// to work after the first call to g.Wait
+			vals = make([]int, fibMax)
+			for i := 0; i < fibMax; i++ {
 				i := i
 				g.Go(func() error {
 					vals[i] = fib(i)
@@ -103,8 +96,8 @@ func TestSmoke(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if !equalInts(vals, fibVals[loopN-1]) {
-				t.Errorf("vals (%d) incorrect: %v  |  %v", loopN, vals, fibVals[loopN])
+			if !equalInts(vals, fibVals[fibMax-1]) {
+				t.Errorf("vals (%d) incorrect: %v  |  %v", fibMax, vals, fibVals[fibMax])
 			}
 		})
 
@@ -112,13 +105,16 @@ func TestSmoke(t *testing.T) {
 
 }
 
-func TestEquivalence_ZeroGroup_GoWaitThenGoAgain(t *testing.T) {
+func TestEquivalence_GoWaitThenGoAgain(t *testing.T) {
 	testCases := []struct {
 		name string
 		newG func() (grouper, context.Context)
 	}{
-		{name: "errgroup", newG: newErrgroupZero},
-		{name: "errgroupn", newG: newErrgroupnZero},
+		{name: "errgroup_zero", newG: newErrgroupZero},
+		{name: "errgroup_wctx", newG: newErrgroupWithContext},
+		{name: "errgroupn_zero", newG: newErrgroupnZero},
+		{name: "errgroupn_wctx", newG: newErrgroupnWithContext},
+		{name: "errgroupn_wctx_16_4", newG: newErrgroupnWithContextN(16, 4)},
 	}
 
 	for _, tc := range testCases {
@@ -133,7 +129,7 @@ func TestEquivalence_ZeroGroup_GoWaitThenGoAgain(t *testing.T) {
 				actionMu.Lock()
 				defer actionMu.Unlock()
 
-				doWork(gctx, 10)
+				_ = doWork(gctx, 10)
 
 				actionCh <- struct{}{}
 				return nil
@@ -165,13 +161,16 @@ func TestEquivalence_ZeroGroup_GoWaitThenGoAgain(t *testing.T) {
 	}
 }
 
-func TestEquivalence_ZeroGroup_WaitThenGo(t *testing.T) {
+func TestEquivalence_WaitThenGo(t *testing.T) {
 	testCases := []struct {
 		name string
 		newG func() (grouper, context.Context)
 	}{
-		{name: "errgroup", newG: newErrgroupZero},
-		{name: "errgroupn", newG: newErrgroupnZero},
+		{name: "errgroup_zero", newG: newErrgroupZero},
+		{name: "errgroup_wctx", newG: newErrgroupWithContext},
+		{name: "errgroupn_zero", newG: newErrgroupnZero},
+		{name: "errgroupn_wctx", newG: newErrgroupnWithContext},
+		{name: "errgroupn_wctx_16_4", newG: newErrgroupnWithContextN(16, 4)},
 	}
 
 	for _, tc := range testCases {
@@ -186,7 +185,7 @@ func TestEquivalence_ZeroGroup_WaitThenGo(t *testing.T) {
 				actionMu.Lock()
 				defer actionMu.Unlock()
 
-				doWork(gctx, 10)
+				_ = doWork(gctx, 10)
 
 				actionCh <- struct{}{}
 				return nil
@@ -240,21 +239,6 @@ func init() {
 		fibVals[i][i] = fib(i)
 	}
 
-}
-
-// fibFill fills each element fibs[i] with fib(i).
-func fibFill(fibs []int) error {
-	for i := range fibs {
-		fibs[i] = fib(i)
-	}
-	return nil
-}
-
-func doFib(n int) error {
-	f := fib(n)
-	runtime.KeepAlive(f) // Prevent compiler optimization for benchmarking
-	// fmt.Fprintln(ioutil.Discard, fib(n))
-	return nil
 }
 
 // fib returns the fibonacci sequence of n.
