@@ -27,6 +27,14 @@ to
 
 ```go
 import (
+  "github.com/neilotoole/errgroupn"
+)
+```
+
+or for a clean drop-in replacement of `sync/errgroup`:
+
+```go
+import (
   "errgroup" "github.com/neilotoole/errgroupn"
 )
 ```
@@ -34,7 +42,7 @@ import (
 Then use in the normal manner.
 
 ```go
-g, ctx := errgroup.WithContext(ctx)
+g, ctx := errgroupn.WithContext(ctx)
 g.Go(func() error {
     // do something
     return nil
@@ -50,7 +58,7 @@ For that you'll need `WithContextN`:
 
 ```go
 numG, qSize := 8, 4
-g, ctx := errgroup.WithContextN(ctx, numG, qSize)
+g, ctx := errgroupn.WithContextN(ctx, numG, qSize)
 
 ```
 
@@ -64,9 +72,9 @@ when tuned for a specific workload.
 Below is a selection of benchmark results. How to read this: a workload is _X_ tasks
 of _Y_ complexity. The workload is executed for:
  
-- `sync/errgroup`;
-- a non-parallel implementation (`sequential`); and
-- various `{numG, qSize}` configurations of `errgroupn`.
+- `sync/errgroup`
+- a non-parallel implementation (`sequential`)
+- various `{numG, qSize}` configurations of `errgroupn`
 
 ```
 BenchmarkGroup_Short/complexity_5/tasks_50/errgroupn_default_16_16-16         	   25574	     46867 ns/op	     688 B/op	      12 allocs/op
