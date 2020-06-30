@@ -32,7 +32,7 @@ import (
 )
 ```
 
-Then use in the normal manner.
+Then use in the normal manner. See the [godoc](https://pkg.go.dev/github.com/neilotoole/errgroup) for more.
 
 ```go
 g, ctx := errgroup.WithContext(ctx)
