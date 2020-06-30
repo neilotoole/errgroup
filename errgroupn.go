@@ -33,7 +33,7 @@ import (
 // the Group returned by WithContext both use default values (the value
 // of runtime.NumCPU) for the numG and qSize args. A side-effect of this
 // implementation is that the Go method will block while qCh is full: in
-// constrast, errgroup.Group's Go method never blocks (it always spawns
+// contrast, errgroup.Group's Go method never blocks (it always spawns
 // a new goroutine).
 type Group struct {
 	cancel func()
@@ -127,7 +127,7 @@ func (g *Group) Go(f func() error) {
 		// would be created, which would be daft.
 		// We want the "effective" zero value to be runtime.NumCPU.
 		if g.numG == 0 {
-			// Benchmarking has shown that the optimtal numG and
+			// Benchmarking has shown that the optimal numG and
 			// qSize value depends on the particular workload. In
 			// the absence of any other deciding factor, we just
 			// default to NumCPU, which seems to perform reasonably in

@@ -61,10 +61,12 @@ performance vs `sync/errgroup` was assumed. However, benchmarking
 suggests that `errgroupn` can be more effective than `sync/errgroup` 
 when tuned for a specific workload.
 
-Below is a selection of benchmark results. How to read this: a workload is `X` tasks
-of `Y` complexity. The workload is executed via `sync/errgroup`; a
-non-parallel implementation (`sequential`); and various (`numG`, `qCh`)
-configurations of `errgroupn`.
+Below is a selection of benchmark results. How to read this: a workload is _X_ tasks
+of _Y_ complexity. The workload is executed via:
+ 
+- `sync/errgroup`;
+- a non-parallel implementation (`sequential`);
+- and various `{numG, qSize}` configurations of `errgroupn`.
 
 ```
 BenchmarkGroup_Short/complexity_5/tasks_50/errgroupn_default_16_16-16         	   25574	     46867 ns/op	     688 B/op	      12 allocs/op
@@ -100,17 +102,19 @@ Why require an explicit `qSize` limit?
 
 If the number of calls to `Group.Go` results in `qCh` becoming
 full, the `Go` method will block until worker goroutines relieve `qCh`.
-This behavior is in constrast to `sync/errgroup.Go`, which doesn't block.
+This behavior is in contrast to `sync/errgroup`'s `Go` method, which doesn't block.
 While `errgroupn` aims to be as much of a behaviorally identical
 "drop-in" alternative to `errgroup` as possible, this blocking behavior
 is an accepted deviation.
 
 Relatedly: the capacity of `qCh` is controlled by `qSize`, but it's probable an
 alternative implementation could be built that uses a (growable) slice
-acting, if `qCh` is full, as a buffer for functions passed to `Go`.
-Consideration of this design led to this [issue](https://github.com/golang/go/issues/20352)
+acting - if `qCh` is full - as a buffer for functions passed to `Go`.
+Consideration of this potential design led to this [issue](https://github.com/golang/go/issues/20352)
 regarding _unlimited capacity channels_, or perhaps better characterized
 in this particular case as "_growable capacity channels_". If such a
 feature existed in the language, it's possible that `errgroupn` might
 have taken advantage of it, at least in the first-pass release (benchmarking
-etc notwithstanding). 
+etc notwithstanding). However benchmarking seems to suggest that a relatively
+small `qSize` has performance benefits for some workloads, so it's possible
+that the explicit `qSize` requirement is a better design choice.
