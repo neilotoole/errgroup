@@ -9,8 +9,8 @@ of `N` goroutines. The exported API is identical but for an additional
 function `WithContextN`, which allows the caller
 to specify the maximum number of goroutines (`numG`) and the capacity
 of the queue channel (`qSize`) used to hold work before it is picked
-up by a worker goroutine. The zero `Group` and the `WithContext`
-function both return a `Group` with `numG` and `qSize` equal to `runtime.NumCPU`.
+up by a worker goroutine. The zero `Group` and the `Group` returned
+by `WithContext` have `numG` and `qSize` equal to `runtime.NumCPU`.
 
 
 ## Usage
@@ -62,11 +62,11 @@ suggests that `errgroupn` can be more effective than `sync/errgroup`
 when tuned for a specific workload.
 
 Below is a selection of benchmark results. How to read this: a workload is _X_ tasks
-of _Y_ complexity. The workload is executed via:
+of _Y_ complexity. The workload is executed for:
  
 - `sync/errgroup`;
-- a non-parallel implementation (`sequential`);
-- and various `{numG, qSize}` configurations of `errgroupn`.
+- a non-parallel implementation (`sequential`); and
+- various `{numG, qSize}` configurations of `errgroupn`.
 
 ```
 BenchmarkGroup_Short/complexity_5/tasks_50/errgroupn_default_16_16-16         	   25574	     46867 ns/op	     688 B/op	      12 allocs/op
@@ -107,7 +107,7 @@ While `errgroupn` aims to be as much of a behaviorally identical
 "drop-in" alternative to `errgroup` as possible, this blocking behavior
 is an accepted deviation.
 
-Relatedly: the capacity of `qCh` is controlled by `qSize`, but it's probable an
+Noting that the capacity of `qCh` is controlled by `qSize`, it's probable an
 alternative implementation could be built that uses a (growable) slice
 acting - if `qCh` is full - as a buffer for functions passed to `Go`.
 Consideration of this potential design led to this [issue](https://github.com/golang/go/issues/20352)
