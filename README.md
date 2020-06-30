@@ -1,3 +1,6 @@
+[![release](https://img.shields.io/badge/release-v0.1.3-blue.svg)](https://github.com/neilotoole/errgroup/releases/tag/v0.1.3)
+[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/neilotoole/errgroup)
+
 # neilotoole/errgroup
 `neilotoole/errgroup` is a drop-in alternative to Go's wonderful
 [`sync/errgroup`](https://pkg.go.dev/golang.org/x/sync/errgroup) but
