@@ -57,9 +57,7 @@ type Group struct {
 	// qMu protects qCh.
 	qMu sync.Mutex
 
-	// qClosed is true if qCh has been closed.
-	// qClosed bool
-
+	// gCount tracks the number of worker goroutines.
 	gCount int64
 }
 
@@ -78,8 +76,8 @@ func WithContext(ctx context.Context) (*Group, context.Context) {
 // Param numG controls the number of worker goroutines. Param qSize
 // controls the size of the queue channel that holds functions passed
 // to method Go: while the queue channel is full, Go blocks.
-// If numG <= 0, the value of runtime.NumCPU is used (if qSize is
-// also <= 0, a qSize of runtime.NumCPU is used).
+// If numG <= 0, the value of runtime.NumCPU is used; if qSize is
+// also <= 0, a qSize of runtime.NumCPU is used.
 func WithContextN(ctx context.Context, numG, qSize int) (*Group, context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Group{cancel: cancel, numG: numG, qSize: qSize}, ctx
@@ -123,16 +121,18 @@ func (g *Group) Wait() error {
 func (g *Group) Go(f func() error) {
 	g.qMu.Lock()
 	if g.qCh == nil {
+		// We need to initialize g.
+
 		// The zero value of numG would mean no worker goroutine
 		// would be created, which would be daft.
 		// We want the "effective" zero value to be runtime.NumCPU.
 		if g.numG == 0 {
 			// Benchmarking has shown that the optimal numG and
 			// qSize values depend on the particular workload. In
-			// the absence of any other deciding factor, we just
-			// default to NumCPU, which seems to perform reasonably in
-			// most cases. Users that care about performance tuning
-			// will use the WithContextN func to specify the numG
+			// the absence of any other deciding factor, we somewhat
+			// arbitrarily default to NumCPU, which seems to perform
+			// reasonably in benchmarks. Users that care about performance
+			// tuning will use the WithContextN func to specify the numG
 			// and qSize args.
 			g.numG = runtime.NumCPU()
 			if g.qSize == 0 {
@@ -156,7 +156,7 @@ func (g *Group) Go(f func() error) {
 
 	g.qCh <- f
 
-	// Check if we can or should start a new goroutine.
+	// Check if we can or should start a new goroutine?
 	g.maybeStartG()
 
 	g.qMu.Unlock()
