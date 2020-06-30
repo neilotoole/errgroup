@@ -59,7 +59,7 @@ g, ctx := errgroup.WithContextN(ctx, numG, qSize)
 The motivation for creating `neilotoole/errgroup` was to provide rate-limiting while
 maintaining the lovely `sync/errgroup` semantics. Sacrificing some
 performance vs `sync/errgroup` was assumed. However, benchmarking
-suggests that implementation can be more effective than `sync/errgroup` 
+suggests that this implementation can be more effective than `sync/errgroup` 
 when tuned for a specific workload.
 
 Below is a selection of benchmark results. How to read this: a workload is _X_ tasks
