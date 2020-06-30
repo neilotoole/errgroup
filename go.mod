@@ -1,4 +1,4 @@
-module github.com/neilotoole/errgroupn
+module github.com/neilotoole/errgroup
 
 go 1.14
 

@@ -1,10 +1,11 @@
-# errgroupn
-`errgroupn` is a drop-in alternative to Go's wonderful [`sync/errgroup`](https://pkg.go.dev/golang.org/x/sync/errgroup) but limited
-to `N` goroutines. This is useful for interaction with rate-limited
+# neilotoole/errgroup
+`neilotoole/errgroup` is a drop-in alternative to Go's wonderful
+[`sync/errgroup`](https://pkg.go.dev/golang.org/x/sync/errgroup) but
+limited to `N` goroutines. This is useful for interaction with rate-limited
 APIs, databases, and the like.
 
 ## Overview
-In effect, `errgroupn` is `errgroup` but with a worker pool
+In effect, `neilotoole/errgroup` is `sync/errgroup` but with a worker pool
 of `N` goroutines. The exported API is identical but for an additional
 function `WithContextN`, which allows the caller
 to specify the maximum number of goroutines (`numG`) and the capacity
@@ -27,22 +28,14 @@ to
 
 ```go
 import (
-  "github.com/neilotoole/errgroupn"
-)
-```
-
-or for a clean drop-in replacement of `sync/errgroup`:
-
-```go
-import (
-  "errgroup" "github.com/neilotoole/errgroupn"
+  "github.com/neilotoole/errgroup"
 )
 ```
 
 Then use in the normal manner.
 
 ```go
-g, ctx := errgroupn.WithContext(ctx)
+g, ctx := errgroup.WithContext(ctx)
 g.Go(func() error {
     // do something
     return nil
@@ -58,23 +51,23 @@ For that you'll need `WithContextN`:
 
 ```go
 numG, qSize := 8, 4
-g, ctx := errgroupn.WithContextN(ctx, numG, qSize)
+g, ctx := errgroup.WithContextN(ctx, numG, qSize)
 
 ```
 
 ## Performance
-The motivation for creating `errgroupn` was to provide rate-limiting while
+The motivation for creating `neilotoole/errgroup` was to provide rate-limiting while
 maintaining the lovely `sync/errgroup` semantics. Sacrificing some
 performance vs `sync/errgroup` was assumed. However, benchmarking
-suggests that `errgroupn` can be more effective than `sync/errgroup` 
+suggests that implementation can be more effective than `sync/errgroup` 
 when tuned for a specific workload.
 
 Below is a selection of benchmark results. How to read this: a workload is _X_ tasks
 of _Y_ complexity. The workload is executed for:
  
-- `sync/errgroup`
+- `sync/errgroup`, listed as `sync_errgroup`
 - a non-parallel implementation (`sequential`)
-- various `{numG, qSize}` configurations of `errgroupn`
+- various `{numG, qSize}` configurations of `neilotoole/errgroup`, listed as `errgroupn`
 
 ```
 BenchmarkGroup_Short/complexity_5/tasks_50/errgroupn_default_16_16-16         	   25574	     46867 ns/op	     688 B/op	      12 allocs/op
@@ -99,7 +92,7 @@ BenchmarkGroup_Short/complexity_40/tasks_250/sync_errgroup-16                 	 
 BenchmarkGroup_Short/complexity_40/tasks_250/sequential-16                    	     200	   5924693 ns/op	       0 B/op	       0 allocs/op
 ```
 
-The overall impression is that that `errgroupn` can provide higher
+The overall impression is that that `neilotoole/errgroup` can provide higher
 throughput than `sync/errgroup` for these (CPU-intensive) workloads,
 sometimes significantly so. As always, these benchmark results should
 not be taken as gospel: your results may vary.
@@ -111,8 +104,8 @@ Why require an explicit `qSize` limit?
 If the number of calls to `Group.Go` results in `qCh` becoming
 full, the `Go` method will block until worker goroutines relieve `qCh`.
 This behavior is in contrast to `sync/errgroup`'s `Go` method, which doesn't block.
-While `errgroupn` aims to be as much of a behaviorally identical
-"drop-in" alternative to `errgroup` as possible, this blocking behavior
+While `neilotoole/errgroup` aims to be as much of a behaviorally similar
+"drop-in" alternative to `sync/errgroup` as possible, this blocking behavior
 is an accepted deviation.
 
 Noting that the capacity of `qCh` is controlled by `qSize`, it's probable an
@@ -121,8 +114,8 @@ acting - if `qCh` is full - as a buffer for functions passed to `Go`.
 Consideration of this potential design led to this [issue](https://github.com/golang/go/issues/20352)
 regarding _unlimited capacity channels_, or perhaps better characterized
 in this particular case as "_growable capacity channels_". If such a
-feature existed in the language, it's possible that `errgroupn` might
-have taken advantage of it, at least in the first-pass release (benchmarking
-etc notwithstanding). However benchmarking seems to suggest that a relatively
+feature existed in the language, it's possible that this implementation might
+have taken advantage of it, at least in the first-pass release (benchmarking notwithstanding).
+However benchmarking seems to suggest that a relatively
 small `qSize` has performance benefits for some workloads, so it's possible
 that the explicit `qSize` requirement is a better design choice.

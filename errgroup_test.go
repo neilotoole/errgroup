@@ -2,12 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This file is copied directly from errgroup/errgroup_test.go with
-// the one-line change that pkg neilotoole/errgroupn is imported
-// as errgroup. This was done to test if neilotoole/errgroupn can be
-// characterized as a "drop-in" replacement for sync/errgroup.
+// Note: This file is copied directly from errgroup/errgroup_example_md5all_test.go
+// with the one-line change that pkg neilotoole/errgroup is imported
+// instead of sync/errgroup. The purpose is to test if neilotoole/errgroup
+// can be characterized as a "drop-in" replacement for sync/errgroup, by
+// seamlessly passing all of sync/errgroup's tests.
 
-package errgroupn_test
+package errgroup_test
 
 import (
 	"context"
@@ -17,7 +18,7 @@ import (
 	"os"
 	"testing"
 
-	errgroup "github.com/neilotoole/errgroupn"
+	"github.com/neilotoole/errgroup"
 )
 
 var (

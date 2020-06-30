@@ -1,4 +1,4 @@
-package errgroupn_test
+package errgroup_test
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/neilotoole/errgroupn"
+	errgroupn "github.com/neilotoole/errgroup"
 )
 
-// BenchmarkGroup_Short is a (shorter) benchmark of errgroupn.
+// BenchmarkGroup_Short is a (shorter) benchmark of errgroup.
 //
 //   go test -run=XXX -bench=BenchmarkGroup_Short -benchtime=1s
 func BenchmarkGroup_Short(b *testing.B) {

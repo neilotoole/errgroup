@@ -1,4 +1,4 @@
-// Package errgroupn is an extension of the sync/errgroup
+// Package neilotoole/errgroup is an extension of the sync/errgroup
 // concept, and much of the code herein is descended from
 // or directly copied from that sync/errgroup code which
 // has this header comment:
@@ -7,10 +7,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package errgroupn is a drop-in alternative to errgroup but
-// limited to N goroutines. In effect, errgroupn is errgroup
-// but with a worker pool of N goroutines.
-package errgroupn
+// Package errgroup is a drop-in alternative to sync/errgroup but
+// limited to N goroutines. In effect, neilotoole/errgroup is
+// sync/errgroup but with a worker pool of N goroutines.
+package errgroup
 
 import (
 	"context"

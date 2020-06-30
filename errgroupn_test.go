@@ -1,4 +1,4 @@
-package errgroupn_test
+package errgroup_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/neilotoole/errgroupn"
+	errgroupn "github.com/neilotoole/errgroup"
 )
 
 // grouper is an abstraction of errgroup.Group's exported methodset.
