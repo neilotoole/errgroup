@@ -70,7 +70,7 @@ of _Y_ complexity. The workload is executed for:
  
 - `sync/errgroup`, listed as `sync_errgroup`
 - a non-parallel implementation (`sequential`)
-- various `{numG, qSize}` configurations of `neilotoole/errgroup`, listed as `errgroupn`
+- various `{numG, qSize}` configurations of `neilotoole/errgroup`, listed as `errgroupn_{numG}_{qSize}`
 
 ```
 BenchmarkGroup_Short/complexity_5/tasks_50/errgroupn_default_16_16-16         	   25574	     46867 ns/op	     688 B/op	      12 allocs/op
