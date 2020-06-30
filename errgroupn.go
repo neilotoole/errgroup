@@ -27,14 +27,14 @@ import (
 //
 // This Group implementation differs from sync/errgroup in that instead
 // of each call to Go spawning a new Go routine, the f passed to Go
-// is sent to queue channel (qCh), and is picked up by one of N
+// is sent to a queue channel (qCh), and is picked up by one of N
 // worker goroutines. The number of goroutines (numG) and the queue
 // channel size (qSize) are args to WithContextN. The zero Group and
-// the Group returned by the WithContext method both use default
-// values (the value of runtime.NumCPU) for the numG and qSize args.
-// A side-effect of this implementation is that the Go method will
-// block while qCh is full: in constrast, errgroup.Group's Go method
-// never blocks (it always spawns a new goroutine).
+// the Group returned by WithContext both use default values (the value
+// of runtime.NumCPU) for the numG and qSize args. A side-effect of this
+// implementation is that the Go method will block while qCh is full: in
+// constrast, errgroup.Group's Go method never blocks (it always spawns
+// a new goroutine).
 type Group struct {
 	cancel func()
 
@@ -75,11 +75,11 @@ func WithContext(ctx context.Context) (*Group, context.Context) {
 // returns a non-nil error or the first time Wait returns, whichever occurs
 // first.
 //
-// Param numG controls the number of worker goroutines. Pram qSize
+// Param numG controls the number of worker goroutines. Param qSize
 // controls the size of the queue channel that holds functions passed
 // to method Go: while the queue channel is full, Go blocks.
 // If numG <= 0, the value of runtime.NumCPU is used (if qSize is
-// also <= 0, a qSize of runtime.NumCPU is also used).
+// also <= 0, a qSize of runtime.NumCPU is used).
 func WithContextN(ctx context.Context, numG, qSize int) (*Group, context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Group{cancel: cancel, numG: numG, qSize: qSize}, ctx
@@ -147,9 +147,10 @@ func (g *Group) Go(f func() error) {
 		atomic.StoreInt64(&g.gCount, 1)
 		g.startG()
 
+		g.qMu.Unlock()
+
 		g.qCh <- f
 
-		g.qMu.Unlock()
 		return
 	}
 
@@ -159,8 +160,11 @@ func (g *Group) Go(f func() error) {
 	g.maybeStartG()
 
 	g.qMu.Unlock()
+
 }
 
+// maybeStartG might start a new worker goroutine, if
+// needed and allowed.
 func (g *Group) maybeStartG() {
 	if len(g.qCh) == 0 {
 		// No point starting a new goroutine if there's
@@ -169,18 +173,19 @@ func (g *Group) maybeStartG() {
 	}
 
 	// We have at least one item in qCh. Maybe it's time to start
-	// a new goroutine?
+	// a new worker goroutine?
 	if atomic.AddInt64(&g.gCount, 1) > int64(g.numG) {
-		// Starting a new goroutine would put us over the numG limit,
-		// so we back out.
+		// Nope: not allowed. Starting a new goroutine would put us
+		// over the numG limit, so we back out.
 		atomic.AddInt64(&g.gCount, -1)
 		return
 	}
 
-	// It's safe to start a new goroutine
+	// It's safe to start a new worker goroutine.
 	g.startG()
 }
 
+// startG starts a new worker goroutine.
 func (g *Group) startG() {
 	g.wg.Add(1)
 	go func() {

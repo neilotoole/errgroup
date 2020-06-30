@@ -1,6 +1,6 @@
 # errgroupn
 `errgroupn` is a drop-in alternative to Go's `sync/errgroup` but limited
-to N goroutines. This is useful for interaction with rate-lmited
+to `N` goroutines. This is useful for interaction with rate-lmited
 APIs, databases, and the like.
 
 ## Overview

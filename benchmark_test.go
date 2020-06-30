@@ -95,7 +95,7 @@ func BenchmarkGroup_Short(b *testing.B) {
 // Note that this benchmark takes a long time to run. Typically you'll
 // need to set the -timeout flag to 20-60m depending upon your system.
 //
-//   go test -run=XXX -bench=. -benchtime=1s -timeout=20m
+//   go test -run=XXX -bench=BenchmarkGroup_Short -benchtime=1s -timeout=60m
 func BenchmarkGroup_Long(b *testing.B) {
 	if testing.Short() {
 		b.Skipf("This benchmark takes a long time to run")
