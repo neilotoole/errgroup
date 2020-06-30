@@ -1,5 +1,6 @@
-[![release](https://img.shields.io/badge/release-v0.1.3-blue.svg)](https://github.com/neilotoole/errgroup/releases/tag/v0.1.3)
+[![release](https://img.shields.io/badge/release-v0.1.3-green.svg)](https://github.com/neilotoole/errgroup/releases/tag/v0.1.3)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/neilotoole/errgroup)
+[![license](https://img.shields.io/github/license/neilotoole/errgroup)](./LICENSE)
 
 # neilotoole/errgroup
 `neilotoole/errgroup` is a drop-in alternative to Go's wonderful
@@ -48,9 +49,7 @@ err := g.Wait()
 ```
 
 Many users will have no need to tweak the `numG` and `qCh` params. However, benchmarking
-may suggest particular values for your workload.
-
-For that you'll need `WithContextN`:
+may suggest particular values for your workload. For that you'll need `WithContextN`:
 
 ```go
 numG, qSize := 8, 4
