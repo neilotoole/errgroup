@@ -109,7 +109,7 @@ full, the `Go` method will block until worker goroutines relieve `qCh`.
 This behavior is in contrast to `sync/errgroup`'s `Go` method, which doesn't block.
 While `neilotoole/errgroup` aims to be as much of a behaviorally similar
 "drop-in" alternative to `sync/errgroup` as possible, this blocking behavior
-is an accepted deviation.
+is an conscious deviation.
 
 Noting that the capacity of `qCh` is controlled by `qSize`, it's probable an
 alternative implementation could be built that uses a (growable) slice
