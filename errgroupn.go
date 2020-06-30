@@ -128,7 +128,7 @@ func (g *Group) Go(f func() error) {
 		// We want the "effective" zero value to be runtime.NumCPU.
 		if g.numG == 0 {
 			// Benchmarking has shown that the optimal numG and
-			// qSize value depends on the particular workload. In
+			// qSize values depend on the particular workload. In
 			// the absence of any other deciding factor, we just
 			// default to NumCPU, which seems to perform reasonably in
 			// most cases. Users that care about performance tuning
