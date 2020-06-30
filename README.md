@@ -44,9 +44,9 @@ g.Go(func() error {
 err := g.Wait()
 ```
 
-Many users will have no need to tweak the `numG` and `qCh` params.
+Many users will have no need to tweak the `numG` and `qCh` params. However, benchmarking
+may suggest particular values for your workload.
 
-However, benchmarking may suggest particular values for your workload.
 For that you'll need `WithContextN`:
 
 ```go
