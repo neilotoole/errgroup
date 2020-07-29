@@ -95,7 +95,7 @@ BenchmarkGroup_Short/complexity_40/tasks_250/sync_errgroup-16                 	 
 BenchmarkGroup_Short/complexity_40/tasks_250/sequential-16                    	     200	   5924693 ns/op	       0 B/op	       0 allocs/op
 ```
 
-The overall impression is that that `neilotoole/errgroup` can provide higher
+The overall impression is that `neilotoole/errgroup` can provide higher
 throughput than `sync/errgroup` for these (CPU-intensive) workloads,
 sometimes significantly so. As always, these benchmark results should
 not be taken as gospel: your results may vary.
