@@ -1,5 +1,5 @@
 ![Actions Status](https://github.com/neilotoole/errgroup/workflows/Go/badge.svg)
-[![release](https://img.shields.io/badge/release-v0.1.4-green.svg)](https://github.com/neilotoole/errgroup/releases/tag/v0.1.3)
+[![release](https://img.shields.io/badge/release-v0.1.5-green.svg)](https://github.com/neilotoole/errgroup/releases/tag/v0.1.5)
 [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/neilotoole/errgroup)
 [![license](https://img.shields.io/github/license/neilotoole/errgroup)](./LICENSE)
 
