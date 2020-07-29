@@ -64,7 +64,7 @@ type Group struct {
 // WithContext returns a new Group and an associated Context derived from ctx.
 // It is equivalent to WithContextN(ctx, 0, 0).
 func WithContext(ctx context.Context) (*Group, context.Context) {
-	return WithContextN(ctx, 0, 0)
+	return WithContextN(ctx, 0, 0) // zero indicates default values
 }
 
 // WithContextN returns a new Group and an associated Context derived from ctx.

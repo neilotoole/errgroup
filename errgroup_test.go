@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Note: This file is copied directly from errgroup/errgroup_example_md5all_test.go
+// Note: This file is copied directly from sync/errgroup
 // with the one-line change that pkg neilotoole/errgroup is imported
 // instead of sync/errgroup. The purpose is to test if neilotoole/errgroup
 // can be characterized as a "drop-in" replacement for sync/errgroup, by
