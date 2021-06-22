@@ -44,11 +44,11 @@ type Group struct {
 	err     error
 
 	// numG is the maximum number of goroutines that can be started.
-	numG int
+	NumG int
 
 	// qSize is the capacity of qCh, used for buffering funcs
 	// passed to method Go.
-	qSize int
+	QSize int
 
 	// qCh is the buffer used to hold funcs passed to method Go
 	// before they are picked up by worker goroutines.
@@ -80,7 +80,7 @@ func WithContext(ctx context.Context) (*Group, context.Context) {
 // also <= 0, a qSize of runtime.NumCPU is used.
 func WithContextN(ctx context.Context, numG, qSize int) (*Group, context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
-	return &Group{cancel: cancel, numG: numG, qSize: qSize}, ctx
+	return &Group{cancel: cancel, NumG: numG, QSize: qSize}, ctx
 }
 
 // Wait blocks until all function calls from the Go method have returned, then
@@ -126,7 +126,7 @@ func (g *Group) Go(f func() error) {
 		// The zero value of numG would mean no worker goroutine
 		// would be created, which would be daft.
 		// We want the "effective" zero value to be runtime.NumCPU.
-		if g.numG == 0 {
+		if g.NumG == 0 {
 			// Benchmarking has shown that the optimal numG and
 			// qSize values depend on the particular workload. In
 			// the absence of any other deciding factor, we somewhat
@@ -134,13 +134,13 @@ func (g *Group) Go(f func() error) {
 			// reasonably in benchmarks. Users that care about performance
 			// tuning will use the WithContextN func to specify the numG
 			// and qSize args.
-			g.numG = runtime.NumCPU()
-			if g.qSize == 0 {
-				g.qSize = g.numG
+			g.NumG = runtime.NumCPU()
+			if g.QSize == 0 {
+				g.QSize = g.NumG
 			}
 		}
 
-		g.qCh = make(chan func() error, g.qSize)
+		g.qCh = make(chan func() error, g.QSize)
 
 		// Being that g.Go has been invoked, we'll need at
 		// least one goroutine.
@@ -174,7 +174,7 @@ func (g *Group) maybeStartG() {
 
 	// We have at least one item in qCh. Maybe it's time to start
 	// a new worker goroutine?
-	if atomic.AddInt64(&g.gCount, 1) > int64(g.numG) {
+	if atomic.AddInt64(&g.gCount, 1) > int64(g.NumG) {
 		// Nope: not allowed. Starting a new goroutine would put us
 		// over the numG limit, so we back out.
 		atomic.AddInt64(&g.gCount, -1)
