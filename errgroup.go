@@ -190,6 +190,7 @@ func (g *Group) startG() {
 	g.wg.Add(1)
 	go func() {
 		defer g.wg.Done()
+		defer atomic.AddInt64(&g.gCount, -1)
 
 		var f func() error
 
