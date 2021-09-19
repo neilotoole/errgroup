@@ -12,6 +12,7 @@
 *.out
 
 *.iml
+.idea
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
