@@ -211,8 +211,6 @@ func (g *Group) startG() {
 						g.cancel()
 					}
 				})
-
-				return
 			}
 		}
 	}()
