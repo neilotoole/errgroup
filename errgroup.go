@@ -40,8 +40,10 @@ type Group struct {
 
 	wg sync.WaitGroup
 
-	errOnce sync.Once
-	err     error
+	err error
+
+	// errMu protects err.
+	errMu sync.RWMutex
 
 	// numG is the maximum number of goroutines that can be started.
 	numG int
@@ -154,13 +156,28 @@ func (g *Group) Go(f func() error) {
 		return
 	}
 
-	g.qCh <- f
+	for {
+		g.errMu.RLock()
+		if g.err != nil {
+			g.errMu.RUnlock()
+			g.qMu.Unlock()
 
-	// Check if we can or should start a new goroutine?
-	g.maybeStartG()
+			return
+		}
 
-	g.qMu.Unlock()
+		select {
+		case g.qCh <- f:
+			g.errMu.RUnlock()
+			g.maybeStartG()
+			g.qMu.Unlock()
 
+			return
+		default:
+			break
+		}
+
+		g.errMu.RUnlock()
+	}
 }
 
 // maybeStartG might start a new worker goroutine, if
@@ -204,16 +221,30 @@ func (g *Group) startG() {
 				return
 			}
 
-			if err := f(); err != nil {
-				g.errOnce.Do(func() {
-					g.err = err
-					if g.cancel != nil {
-						g.cancel()
-					}
-				})
+			err := f()
+			if err == nil {
+				// happy path
+				continue
+			}
 
+			// an error exists
+			// checking if it's the first group error
+			g.errMu.Lock()
+			if g.err != nil {
+				// this is not the first group error
+				// no need to set it
+				g.errMu.Unlock()
 				return
 			}
+
+			g.err = err
+			g.errMu.Unlock()
+
+			if g.cancel != nil {
+				g.cancel()
+			}
+
+			return
 		}
 	}()
 }
