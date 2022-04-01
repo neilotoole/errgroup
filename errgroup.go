@@ -173,10 +173,8 @@ func (g *Group) Go(f func() error) {
 
 			return
 		default:
-			break
+			g.errMu.RUnlock()
 		}
-
-		g.errMu.RUnlock()
 	}
 }
 

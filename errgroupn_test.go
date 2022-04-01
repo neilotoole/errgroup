@@ -2,6 +2,7 @@ package errgroup_test
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -103,6 +104,54 @@ func TestGroup(t *testing.T) {
 
 	}
 
+}
+
+func TestGroupWithErrors(t *testing.T) {
+	testCases := []struct {
+		name string
+		newG func() (grouper, context.Context)
+	}{
+		{name: "errgroup_zero", newG: newErrgroupZero},
+		{name: "errgroup_wctx", newG: newErrgroupWithContext},
+		{name: "errgroupn_zero", newG: newErrgroupnZero},
+		{name: "errgroupn_wctx", newG: newErrgroupnWithContext},
+		{name: "errgroupn_wctx_0_0", newG: newErrgroupnWithContextN(0, 0)},
+		{name: "errgroupn_wctx_1_0", newG: newErrgroupnWithContextN(1, 0)},
+		{name: "errgroupn_wctx_1_1", newG: newErrgroupnWithContextN(1, 1)},
+		{name: "errgroupn_wctx_4_16", newG: newErrgroupnWithContextN(4, 16)},
+		{name: "errgroupn_wctx_16_4", newG: newErrgroupnWithContextN(16, 4)},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			f := func() {
+				g, _ := tc.newG()
+
+				for i := 0; i < 1000; i++ {
+					i := i
+					g.Go(func() error {
+						// return an error for every 3
+						if i%3 == 0 {
+							return errors.New("sample error")
+						}
+
+						return nil
+					})
+				}
+
+				if g.Wait() == nil {
+					t.Error("Wait should return an error but did not")
+				}
+			}
+
+			// this may cause a deadlock, so running test with a timeout
+			testTimeout := 10 * time.Second
+			if err := mustRunInTime(testTimeout, f); err != nil {
+				t.Errorf("mustRunInTime failed with error: %v", err)
+			}
+		})
+	}
 }
 
 func TestEquivalence_GoWaitThenGoAgain(t *testing.T) {
@@ -264,4 +313,25 @@ func equalInts(a, b []int) bool {
 	}
 
 	return true
+}
+
+// mustRunInTime returns an error if execution of a function
+// takes more than the timeout set
+func mustRunInTime(d time.Duration, f func()) error {
+	c := make(chan struct{}, 1)
+
+	// Run your long running function in it's own goroutine and pass back it's
+	// response into our channel.
+	go func() {
+		f()
+		c <- struct{}{}
+	}()
+
+	// Listen on our channel AND a timeout channel - which ever happens first.
+	select {
+	case <-c:
+		return nil
+	case <-time.After(d):
+		return errors.New("timeout")
+	}
 }
