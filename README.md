@@ -12,6 +12,12 @@
 limited to `N` goroutines. This is useful for interaction with rate-limited
 APIs, databases, and the like.
 
+
+> **Note**
+> The `sync/errgroup` package [now](https://github.com/neilotoole/errgroup/issues/14) has a [Group.SetLimit](https://pkg.go.dev/golang.org/x/sync/errgroup#Group.SetLimit) method,
+> which eliminates the need for `neilotoole/errgroup`. This package will no longer be maintained. Use `sync/errgroup` instead.
+
+
 ## Overview
 In effect, `neilotoole/errgroup` is `sync/errgroup` but with a worker pool
 of `N` goroutines. The exported API is identical but for an additional
